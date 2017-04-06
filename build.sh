@@ -53,6 +53,7 @@ function BuildAll()
 		Build $opt_platform $TYPE
 	else
 		Build $opt_platform "C"
+		Build $opt_platform "PR"
 		Build $opt_platform "Orig"
 		if [ "$opt_platform" != "vc-win64" ]; then
 			Build $opt_platform "Asm"			# no 64-bit assembly implementation

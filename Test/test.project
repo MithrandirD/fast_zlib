@@ -23,7 +23,7 @@ EXEDIR = $R/obj/bin
 
 !if "$COMPILER" eq "GnuC"
 	# linux/cygwin + GCC
-	STDLIBS   = stdc++ m GL 							# libm for math.h functions
+	STDLIBS   = stdc++ m 							# libm for math.h functions
 	!if "$PLATFORM" ne "cygwin"
 		STDLIBS += dl	# dlopen() and friends
 	!endif
@@ -32,6 +32,7 @@ EXEDIR = $R/obj/bin
 	OPTIONS   = -msse2									# enable SSE instructions
 	OPTIONS   += -fno-strict-aliasing					# required for our uint_cast()-based FP hacks
 	OPTIONS   += -fno-stack-protector					# this will remove GLIBC_2.4 dependency
+	OPTIONS   += -fpermissive					# dirty fix for label forward declaration
 !endif
 
 TEST_FILES    = Test/test.cpp
@@ -75,6 +76,14 @@ INCLUDES = zlib
 	sources(TEST32) = {
 		$TEST_FILES
 		Test/deflate_stub.c
+	}
+
+!elif "$TYPE" eq "PR"
+
+	DEFINES += VERSION="PR"
+	sources(TEST32) = {
+		$TEST_FILES
+		Test/deflate_pr.c
 	}
 
 !elif "$TYPE" eq "Asm"
