@@ -4,11 +4,15 @@
 #define Assert(x, msg) { if (!(x)) { printf("Assertion: %s: %s %d: %s\n", msg, __FILE__, __LINE__, #x); exit(1); } }
 #endif
 
+#  ifndef unlikely
+#    define unlikely(x)    __builtin_expect(!!(x), 0)
+#  endif
+
 typedef unsigned short int uint16_t;
 
-static inline long get_match_len(const unsigned char *a, const unsigned char *b, long max)
+static inline int get_match_len(const unsigned char *a, const unsigned char *b, long max)
  {
-     register int len = 0;
+     register unsigned long len = 0;
      register unsigned long xor = 0;
      register int check_loops = max/sizeof(unsigned long);
      while(check_loops-- > 0) {
@@ -16,7 +20,7 @@ static inline long get_match_len(const unsigned char *a, const unsigned char *b,
          if (xor) break;
          len += sizeof(unsigned long);
      }
-     if ((0 == xor)) {
+     if (unlikely(0 == xor)) {
          while (len < max) {
              if (a[len] != b[len]) break;
              len++;
@@ -24,7 +28,7 @@ static inline long get_match_len(const unsigned char *a, const unsigned char *b,
          return len;
      }
      xor = __builtin_ctzl(xor)>>3;
-     return len + xor;
+     return (int)(len + xor);
  }
 
 local uInt longest_match(s, cur_match)
@@ -39,7 +43,7 @@ local uInt longest_match(s, cur_match)
     int nice_match = s->nice_match;             /* stop if match long enough */
     int offset = 0;                             /* offset of current hash code */
     IPos limit = s->strstart > (IPos)MAX_DIST(s) ?
-        s->strstart - (IPos)MAX_DIST(s) -1 : NIL;
+        s->strstart - (IPos)MAX_DIST(s) : NIL;
     /* Stop when cur_match becomes <= limit. To simplify the code,
      * we prevent matches with the string of window index 0.
      */
@@ -77,7 +81,7 @@ local uInt longest_match(s, cur_match)
 
         /* update variables to correspond offset */
         limit += offset;
-        if (cur_match <= limit) return best_len;
+        if (cur_match < limit) return best_len;
 
         match_head -= offset;
     }
@@ -93,7 +97,7 @@ local uInt longest_match(s, cur_match)
             best_len = len;
             /* good enough? */
             if (len >= nice_match) break;
-            if (s->level > 3) {
+            if (s->level > 3 && len >= MIN_MATCH && (cur_match - offset + len < s->strstart)) {
                 IPos pos, distant;
                 register int i;
                 register ush hash = 0;
@@ -112,7 +116,7 @@ local uInt longest_match(s, cur_match)
                         offset = i;
                     }
                 }
-                if (distant <= limit + offset) break;
+                if (distant < limit + offset) break;
 
                 /* Try hash head at len-(MIN_MATCH-1) position to see if we could get
                  * a better cur_match at the end of string. Using (MIN_MATCH-1) lets
@@ -127,7 +131,7 @@ local uInt longest_match(s, cur_match)
                     offset = check_len;
                     distant = pos;
                 }
-                if (distant <= limit + offset) break;
+                if (distant < limit + offset) break;
 
                 /* update offset-dependent vars */
                 limit += offset;
