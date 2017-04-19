@@ -1,6 +1,5 @@
 bak/
 obj/
-zlib/
 *.exe
 *.pdb
 build/binaries/
